@@ -176,6 +176,7 @@ sub decode {
 
   # Extract components and compute the key
   my ( $salt, $expires, $ciphertext, $mac ) = split qr/~/, $string;
+  return unless length($salt) && length($ciphertext) && length($mac);
   my $key = hmac_sha256( $salt, $self->secret_key );
 
   # Check MAC integrity and expiration
