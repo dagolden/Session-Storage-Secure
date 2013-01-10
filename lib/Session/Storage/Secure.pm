@@ -124,6 +124,8 @@ will be used to calculate an expiration time.
 The method returns a string that securely encodes the session data.  All binary
 components are base64 encoded.
 
+An exception is thrown on any errors.
+
 =cut
 
 sub encode {
@@ -164,6 +166,8 @@ The C<$string> argument must be the output of C<encode>.
 If the message integrity check fails or if expiration exists and is in
 the past, the method returns undef or an empty list (depending on context).
 
+An exception is thrown on any errors.
+
 =cut
 
 sub decode {
@@ -196,7 +200,7 @@ sub decode {
 
   my $store = Session::Storage::Secure->new(
     secret_key   => "your pass phrase here",
-    default_duration => 86500 * 7,
+    default_duration => 86400 * 7,
   );
 
   my $encoded = $store->encode( $data, $expires );
@@ -245,11 +249,12 @@ C<user> with a cryptographically-strong random salt value.
 
 The original proposal also calculates a MAC based on unencrypted
 data.  We instead calculate the MAC based on the encrypted data.  This
-avoids the extra step of decrypting invalid messages.
+avoids the extra step of decrypting invalid messages.  Becuase the
+salt is already encoded into the key, we omit it from the MAC input.
 
-Therefore, the session cookie protocol used by this module is as follows:
+Therefore, the session storage protocol used by this module is as follows:
 
-  salt|expiration|E(data,k)|HMAC(salt|expiration|E(data,k),k)
+  salt|expiration|E(data,k)|HMAC(expiration|E(data,k),k)
 
   where
 
