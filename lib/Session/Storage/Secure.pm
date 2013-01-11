@@ -92,9 +92,12 @@ has _rng => (
 
 sub _build__rng {
   my ($self) = @_;
-  my @seeds;
-  if ( -f "/dev/random" ) {
-    open my $fh, "<:raw", "/dev/random/";
+  my ( $fh, @seeds );
+  if ( -r "/dev/random" ) {
+    open $fh, "<:raw", "/dev/random"
+      or warn "Could not open '/dev/random': $!";
+  }
+  if ($fh) {
     my $buf = "";
     while ( length $buf < 1024 ) {
       sysread( $fh, $buf, 1024 - length $buf, length $buf );

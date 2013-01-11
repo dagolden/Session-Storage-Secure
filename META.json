@@ -61,7 +61,9 @@
             "File::Find" : "0",
             "File::Temp" : "0",
             "Test::Deep" : "0",
-            "Test::More" : "0.96"
+            "Test::Fatal" : "0",
+            "Test::More" : "0.96",
+            "Test::Tolerant" : "0"
          }
       }
    },
