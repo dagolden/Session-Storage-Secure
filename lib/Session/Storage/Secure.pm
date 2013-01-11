@@ -135,7 +135,7 @@ sub encode {
   my ( $self, $data, $expires ) = @_;
   $data = {} unless defined $data;
 
-  # if expiration is set, we want to check it and possibly clear data;
+  # If expiration is set, we want to check it and possibly clear data;
   # if not set, we might add an expiration based on default_duration
   if ( defined $expires ) {
     $data = {} if $expires < time;
@@ -144,7 +144,7 @@ sub encode {
     $expires = $self->has_default_duration ? time + $self->default_duration : "";
   }
 
-  # random salt used to derive unique encryption/MAC key for each cookie
+  # Random salt used to derive unique encryption/MAC key for each cookie
   my $salt = $self->_irand;
   my $key = hmac_sha256( $salt, $self->secret_key );
 
@@ -187,7 +187,7 @@ sub decode {
   return unless $check_mac eq $mac;
   return if length($expires) && $expires < time;
 
-  # Decrypt the data so we can check the integrity
+  # Decrypt and deserialize the data
   my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
   my $data;
   eval { $self->_thaw( $cbc->decrypt( decode_base64url($ciphertext) ), $data ) };
