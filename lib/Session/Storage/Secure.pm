@@ -253,7 +253,7 @@ C<user> with a cryptographically-strong random salt value.
 
 The original proposal also calculates a MAC based on unencrypted
 data.  We instead calculate the MAC based on the encrypted data.  This
-avoids the extra step of decrypting invalid messages.  Becuase the
+avoids the extra step of decrypting invalid messages.  Because the
 salt is already encoded into the key, we omit it from the MAC input.
 
 Therefore, the session storage protocol used by this module is as follows:
@@ -392,7 +392,7 @@ Papers on secure cookies and cookie session storage:
 * Murdoch, Stephen J., L<Hardened Stateless Session Cookies|http://www.cl.cam.ac.uk/~sjm217/papers/protocols08cookies.pdf>
 * Fu, Kevin, et al., L<Dos and Don'ts of Client Authentication on the Web|http://pdos.csail.mit.edu/papers/webauth:sec10.pdf>
 
-CPAN modules implmenting cookie session storage:
+CPAN modules implementing cookie session storage:
 
 =for :list
 * L<Catalyst::Plugin::CookiedSession> -- encryption only
@@ -403,7 +403,7 @@ CPAN modules implmenting cookie session storage:
 * L<Plack::Middleware::Session::Cookie> -- MAC only
 * L<Plack::Middleware::Session::SerializedCookie> -- really just a framework and you provide the guts with callbacks
 
-Related CPAN modules that offer frameworks for serealizing and encrypting data,
+Related CPAN modules that offer frameworks for serializing and encrypting data,
 but without features relevant for sessions like expiration and unique keying.
 
 =for :list
