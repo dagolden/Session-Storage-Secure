@@ -177,12 +177,12 @@ sub decode {
   my ( $self, $string ) = @_;
   return unless length $string;
 
-  # Extract components and compute the key
+  # Having a string implies at least salt; expires is optional; rest required
   my ( $salt, $expires, $ciphertext, $mac ) = split qr/~/, $string;
-  return unless length($salt) && length($ciphertext) && length($mac);
-  my $key = hmac_sha256( $salt, $self->secret_key );
+  return unless length($ciphertext) && length($mac);
 
   # Check MAC integrity and expiration
+  my $key = hmac_sha256( $salt, $self->secret_key );
   my $check_mac = encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) );
   return unless $check_mac eq $mac;
   return if length($expires) && $expires < time;

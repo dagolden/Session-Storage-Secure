@@ -149,6 +149,15 @@ subtest "modified mac" => sub {
   is( $decoded, undef, "changed mac decodes to undef" );
 };
 
+subtest "truncated mac" => sub {
+  my $store = _gen_store( { default_duration => 3600 } );
+
+  my $encoded = _replace( $store->encode($data), 3, "" );
+
+  my $decoded = $store->decode($encoded);
+  is( $decoded, undef, "truncated mac decodes to undef" );
+};
+
 subtest "garbage encoded" => sub {
   my $store = _gen_store( { default_duration => 3600 } );
 
@@ -156,6 +165,13 @@ subtest "garbage encoded" => sub {
 
   my $decoded = $store->decode($encoded);
   is( $decoded, undef, "garbage decodes to undef" );
+};
+
+subtest "empty encoded" => sub {
+  my $store = _gen_store( { default_duration => 3600 } );
+
+  my $decoded = $store->decode('');
+  is( $decoded, undef, "empty string decodes to undef" );
 };
 
 done_testing;
