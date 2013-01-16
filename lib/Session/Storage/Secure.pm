@@ -11,9 +11,9 @@ use Crypt::CBC              ();
 use Crypt::Rijndael         ();
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
-use MIME::Base64            (qw/encode_base64url decode_base64url/);
-use Sereal::Encoder         ();
-use Sereal::Decoder         ();
+use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
+use Sereal::Encoder ();
+use Sereal::Decoder ();
 use namespace::clean;
 
 use Moo;
