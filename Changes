@@ -2,6 +2,12 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+  [BUG FIXES]
+
+  - ISAAC is now seeded from /dev/urandom instead of /dev/random to avoid
+    blocking.  urandom is sufficient for seeding a CPRNG that itself is
+    generating salt to permute the actual secret key.
+
 0.002     2013-01-15 23:06:47 America/New_York
 
   [BUG FIXES]

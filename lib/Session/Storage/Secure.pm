@@ -93,9 +93,9 @@ has _rng => (
 sub _build__rng {
     my ($self) = @_;
     my ( $fh, @seeds );
-    if ( -r "/dev/random" ) {
-        open $fh, "<:raw", "/dev/random"
-          or warn "Could not open '/dev/random': $!";
+    if ( -r "/dev/urandom" ) {
+        open $fh, "<:raw", "/dev/urandom"
+          or warn "Could not open '/dev/urandom': $!";
     }
     if ($fh) {
         my $buf = "";
@@ -269,7 +269,7 @@ Therefore, the session storage protocol used by this module is as follows:
     sk is a secret key shared by all servers
 
 The salt value is generated using L<Math::Random::ISAAC::XS>, seeded from
-C</dev/random>, if available, or from rand(), if not.
+C</dev/urandom>, if available, or from rand(), if not.
 
 The HMAC algorithm is C<hmac_sha256> from L<Digest::SHA>.  Encryption
 is done by L<Crypt::CBC> using L<Crypt::Rijndael> (AES).  The ciphertext and
