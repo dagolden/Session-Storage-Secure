@@ -9,6 +9,7 @@ package Session::Storage::Secure;
 use Carp                    (qw/croak/);
 use Crypt::CBC              ();
 use Crypt::Rijndael         ();
+use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
 use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
@@ -92,22 +93,9 @@ has _rng => (
 
 sub _build__rng {
     my ($self) = @_;
-    my ( $fh, @seeds );
-    if ( -r "/dev/urandom" ) {
-        open $fh, "<:raw", "/dev/urandom"
-          or warn "Could not open '/dev/urandom': $!";
-    }
-    if ($fh) {
-        my $buf = "";
-        while ( length $buf < 1024 ) {
-            sysread( $fh, $buf, 1024 - length $buf, length $buf );
-        }
-        @seeds = unpack( 'l*', $buf );
-    }
-    else {
-        @seeds = map { rand } 1 .. 256;
-    }
-    return Math::Random::ISAAC::XS->new(@seeds);
+    return Math::Random::ISAAC::XS->new(
+        map { unpack("N", urandom(4)) } 1 .. 256
+    );
 }
 
 =method encode
@@ -269,7 +257,7 @@ Therefore, the session storage protocol used by this module is as follows:
     sk is a secret key shared by all servers
 
 The salt value is generated using L<Math::Random::ISAAC::XS>, seeded from
-C</dev/urandom>, if available, or from rand(), if not.
+L<Crypt::URandom>.
 
 The HMAC algorithm is C<hmac_sha256> from L<Digest::SHA>.  Encryption
 is done by L<Crypt::CBC> using L<Crypt::Rijndael> (AES).  The ciphertext and

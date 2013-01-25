@@ -43,6 +43,7 @@
             "Carp" : "0",
             "Crypt::CBC" : "0",
             "Crypt::Rijndael" : "0",
+            "Crypt::URandom" : "0",
             "Digest::SHA" : "0",
             "MIME::Base64" : "3.12",
             "Math::Random::ISAAC::XS" : "0",
@@ -70,7 +71,7 @@
    "provides" : {
       "Session::Storage::Secure" : {
          "file" : "lib/Session/Storage/Secure.pm",
-         "version" : "0.003"
+         "version" : "0.004"
       }
    },
    "release_status" : "stable",
@@ -85,6 +86,6 @@
          "web" : "https://github.com/dagolden/session-storage-secure"
       }
    },
-   "version" : "0.003"
+   "version" : "0.004"
 }
 
