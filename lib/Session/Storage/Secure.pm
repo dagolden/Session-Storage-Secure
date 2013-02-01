@@ -136,14 +136,13 @@ sub encode {
     my $salt = $self->_irand;
     my $key = hmac_sha256( $salt, $self->secret_key );
 
-    # Encrypt the serialized data
     my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
-    my $ciphertext =
-      eval { encode_base64url( $cbc->encrypt( $self->_freeze($data) ) ) };
+    my ($ciphertext, $mac);
+    eval {
+        $ciphertext = encode_base64url( $cbc->encrypt( $self->_freeze($data) ) );
+        $mac = encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) );
+    };
     croak "Encoding error: $@" if $@;
-
-    # Calcualate MAC and assemble the result
-    my $mac = encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) );
 
     return join( "~", $salt, $expires, $ciphertext, $mac );
 }
@@ -167,12 +166,15 @@ sub decode {
 
     # Having a string implies at least salt; expires is optional; rest required
     my ( $salt, $expires, $ciphertext, $mac ) = split qr/~/, $string;
-    return unless length($ciphertext) && length($mac);
+    return unless defined($ciphertext) && length($ciphertext);
+    return unless defined($mac) && length($mac);
 
     # Check MAC integrity and expiration
     my $key = hmac_sha256( $salt, $self->secret_key );
-    my $check_mac = encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) );
-    return unless $check_mac eq $mac;
+    my $check_mac = eval {
+        encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) )
+    };
+    return unless defined($check_mac) && length($check_mac) && $check_mac eq $mac;
     return if length($expires) && $expires < time;
 
     # Decrypt and deserialize the data
