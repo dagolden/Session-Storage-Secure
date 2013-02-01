@@ -2,6 +2,8 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+0.005     2013-02-01 13:55:34 America/New_York
+
     [FIXED]
 
     - Added some defensive code to try to avoid test failures on Perl 5.8
