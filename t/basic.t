@@ -82,7 +82,7 @@ subtest "future default duration" => sub {
 
   my $encoded = $store->encode($data);
   my ($got) = $encoded =~ m/~(\d+)~/;
-  is_tol( $got - time, [qw/3550 to 3601/], "expiration in correct range" );
+  is_tol( $got - time, [qw/3550 to 3605/], "expiration in correct range" );
 
   my $decoded = $store->decode($encoded);
   cmp_deeply( $decoded, $data, "roundtrip" );
@@ -93,7 +93,7 @@ subtest "past default duration" => sub {
 
   my $encoded = $store->encode($data);
   my ($got) = $encoded =~ m/~(\d+)~/;
-  is_tol( $got - time, [qw/-3601 to -3550/], "expiration in correct range" );
+  is_tol( $got - time, [qw/-3605 to -3550/], "expiration in correct range" );
 
   my $decoded = $store->decode($encoded);
   is( $decoded, undef, "expired data decodes to undef" );
