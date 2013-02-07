@@ -18,7 +18,7 @@ use Sereal::Decoder ();
 use namespace::clean;
 
 use Moo;
-use MooX::Types::MooseLike::Base qw(:all);
+use MooX::Types::MooseLike::Base 0.16 qw(:all);
 
 #--------------------------------------------------------------------------#
 # Attributes
