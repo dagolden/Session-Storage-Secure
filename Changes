@@ -2,6 +2,8 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+0.007     2013-05-31 23:30:44 America/New_York
+
     [FIXED]
 
     - Replaced HMAC equality check with a constant-time comparison
