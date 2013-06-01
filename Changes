@@ -2,6 +2,11 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+    [FIXED]
+
+    - Replaced HMAC equality check with a constant-time comparison
+      to foil timing attacks
+
 0.006     2013-02-06 22:56:45 America/New_York
 
     [FIXED]

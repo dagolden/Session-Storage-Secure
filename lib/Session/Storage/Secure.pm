@@ -174,7 +174,9 @@ sub decode {
     my $check_mac = eval {
         encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) )
     };
-    return unless defined($check_mac) && length($check_mac) && $check_mac eq $mac;
+    return unless defined($check_mac) && length($check_mac)
+        && (length($check_mac) == length($mac))
+        && ( 0 == unpack("%32C*", $check_mac ^ $mac) ); # constant time comparision
     return if length($expires) && $expires < time;
 
     # Decrypt and deserialize the data
