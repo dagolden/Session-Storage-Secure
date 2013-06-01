@@ -15,6 +15,7 @@ use Math::Random::ISAAC::XS ();
 use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
 use Sereal::Encoder ();
 use Sereal::Decoder ();
+use String::Compare::ConstantTime qw/equals/;
 use namespace::clean;
 
 use Moo;
@@ -174,8 +175,7 @@ sub decode {
     return
          unless defined($check_mac)
       && length($check_mac)
-      && ( length($check_mac) == length($mac) )
-      && ( 0 == unpack( "%32C*", $check_mac ^ $mac ) ); # constant time comparision
+      && equals( $check_mac, $mac ); # constant time comparision
     return if length($expires) && $expires < time;
 
     # Decrypt and deserialize the data
