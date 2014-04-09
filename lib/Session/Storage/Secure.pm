@@ -120,6 +120,24 @@ An exception is thrown on any errors.
 
 sub encode {
     my ( $self, $data, $expires ) = @_;
+    return $self->encode_with_encoding($data, $expires, \&MIME::Base64::encode_base64url);
+}
+
+
+=method encode_with_encoding
+
+  my $string = $store->encode_with_encoding( $data, $expires, $encoding_func );
+
+This is the same as the encode method. The C<$encoding_func> argument is a
+function reference that takes one parameter, the data to encode and returns
+the encoded result.
+
+An exception is thrown on any errors.
+
+=cut
+
+sub encode_with_encoding {
+    my ( $self, $data, $expires, $encoding_func ) = @_;
     $data = {} unless defined $data;
 
     # If expiration is set, we want to check it and possibly clear data;
@@ -138,8 +156,8 @@ sub encode {
     my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
     my ( $ciphertext, $mac );
     eval {
-        $ciphertext = encode_base64url( $cbc->encrypt( $self->_freeze($data) ) );
-        $mac = encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) );
+        $ciphertext = $encoding_func->( $cbc->encrypt( $self->_freeze($data) ) );
+        $mac = $encoding_func->( hmac_sha256( "$expires~$ciphertext", $key ) );
     };
     croak "Encoding error: $@" if $@;
 
@@ -161,6 +179,30 @@ An exception is thrown on any errors.
 
 sub decode {
     my ( $self, $string ) = @_;
+
+    return $self->decode_with_encoding($string,
+                                       \&MIME::Base64::decode_base64url,
+                                       \&MIME::Base64::encode_base64url);
+}
+
+
+=method decode_with_encoding
+
+  my $data = $store->decode( $string, $decoding_func, $encoding_func );
+
+The C<$string> argument must be the output of C<encode>.
+
+This is the same as the C<decode> method with the addition of the
+C<$decoding_func> which is a function reference that will be called to decode
+values.  It is the inverse of the C<$encoding_func>.  C<$encoding_func> is
+also passed because it is needed to verify the MAC.
+
+An exception is thrown on any errors.
+
+=cut
+
+sub decode_with_encoding {
+    my ( $self, $string, $decoding_func, $encoding_func ) = @_;
     return unless length $string;
 
     # Having a string implies at least salt; expires is optional; rest required
@@ -171,7 +213,7 @@ sub decode {
     # Check MAC integrity and expiration
     my $key = hmac_sha256( $salt, $self->secret_key );
     my $check_mac =
-      eval { encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) ) };
+      eval { $encoding_func->( hmac_sha256( "$expires~$ciphertext", $key ) ) };
     return
          unless defined($check_mac)
       && length($check_mac)
@@ -181,7 +223,7 @@ sub decode {
     # Decrypt and deserialize the data
     my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
     my $data;
-    eval { $self->_thaw( $cbc->decrypt( decode_base64url($ciphertext) ), $data ) };
+    eval { $self->_thaw( $cbc->decrypt( $decoding_func->($ciphertext) ), $data ) };
     croak "Decoding error: $@" if $@;
 
     return $data;
