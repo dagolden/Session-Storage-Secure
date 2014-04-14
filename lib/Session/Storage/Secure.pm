@@ -39,6 +39,18 @@ has secret_key => (
     required => 1,
 );
 
+=attr old_secrets
+
+An optional array reference of strings containing old secret keys no longer
+used for encyption but still supported for decrypting session data.
+
+=cut
+
+has old_secrets => (
+    is  => 'ro',
+    isa => ArrayRef [Str],
+);
+
 =attr default_duration
 
 Number of seconds for which the session may be considered valid.  If an
@@ -168,14 +180,26 @@ sub decode {
     return unless defined($ciphertext) && length($ciphertext);
     return unless defined($mac)        && length($mac);
 
-    # Check MAC integrity and expiration
-    my $key = hmac_sha256( $salt, $self->secret_key );
-    my $check_mac =
-      eval { encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) ) };
-    return
-         unless defined($check_mac)
-      && length($check_mac)
-      && equals( $check_mac, $mac ); # constant time comparision
+    # Try to decode against all known secret keys
+    my @secrets = ( $self->secret_key, @{ $self->old_secrets || [] } );
+    my $key;
+    CHECK: foreach my $secret (@secrets) {
+        $key = hmac_sha256( $salt, $secret );
+        my $check_mac =
+          eval {
+              encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) )
+          };
+        last CHECK if ( defined($check_mac)
+            && length($check_mac)
+            && equals( $check_mac, $mac ) # constant time comparison
+        );
+        undef $key;
+    }
+
+    # Check MAC integrity
+    return unless defined($key);
+
+    # Check expiration
     return if length($expires) && $expires < time;
 
     # Decrypt and deserialize the data
@@ -274,8 +298,10 @@ is set and in the past, the session will be discarded.
 =head2 Secret key
 
 You must protect the secret key, of course.  Rekeying periodically would
-improve security.  Rekeying also invalidates all existing sessions.  In a
-multi-node application, all nodes must share the same secret key.
+improve security.  Rekeying also invalidates all existing sessions unless the
+C<old_secrets> attribute contains old encryption keys still used for
+decryption.  In a multi-node application, all nodes must share the same secret
+key.
 
 =head2 Session size
 

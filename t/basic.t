@@ -41,6 +41,27 @@ subtest "defaults" => sub {
 
   my $decoded = $store->decode($encoded);
   cmp_deeply( $decoded, $data, "roundtrip" );
+
+  my $store2 = _gen_store( {
+    secret_key => "second secret",
+    old_secrets => [ $secret ],
+  } );
+  my $decoded2 = $store2->decode($encoded);
+  cmp_deeply( $decoded2, $data, "roundtrip with old secret" );
+
+  my $store3 = _gen_store( {
+    secret_key => "second secret",
+    old_secrets => [ "another secret", $secret ],
+  } );
+  my $decoded3 = $store3->decode($encoded);
+  cmp_deeply( $decoded3, $data, "roundtrip with old secret" );
+
+  my $store4 = _gen_store( {
+    secret_key => "second secret",
+    old_secrets => [ $secret, "another secret" ],
+  } );
+  my $decoded4 = $store4->decode($encoded);
+  cmp_deeply( $decoded4, $data, "roundtrip with old secret" );
 };
 
 subtest "no data" => sub {
@@ -107,6 +128,12 @@ subtest "changed secret key" => sub {
   my $store2 = _gen_store( { secret_key => "unpopular deface inflamed belay" } );
   my $decoded = $store2->decode($encoded);
   is( $decoded, undef, "changed key decodes to undef" );
+
+  my $store3 = _gen_store( {
+    secret_key => "second secret key",
+    old_secrets => [ "something else", "another secret" ],
+  } );
+  is( $store3->decode($encoded), undef, "No matching keys decodes to undef" );
 };
 
 subtest "modified salt" => sub {
