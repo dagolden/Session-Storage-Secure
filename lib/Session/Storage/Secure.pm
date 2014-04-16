@@ -42,7 +42,7 @@ has secret_key => (
 =attr old_secrets
 
 An optional array reference of strings containing old secret keys no longer
-used for encyption but still supported for decrypting session data.
+used for encryption but still supported for decrypting session data.
 
 =cut
 
@@ -213,7 +213,7 @@ sub decode {
 
 1;
 
-=for Pod::Coverage method_names_here
+=for Pod::Coverage has_default_duration
 
 =head1 SYNOPSIS
 

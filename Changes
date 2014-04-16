@@ -7,6 +7,10 @@ Revision history for Session-Storage-Secure
     - Added support for keeping an array of old keys for decryption
       (Tom Hukins)
 
+    [INTERNAL]
+
+    - Update repository support and meta files
+
 0.007     2013-05-31 23:30:44 America/New_York
 
     [FIXED]
