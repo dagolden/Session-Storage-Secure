@@ -186,13 +186,13 @@ sub decode {
     CHECK: foreach my $secret (@secrets) {
         $key = hmac_sha256( $salt, $secret );
         my $check_mac =
-          eval {
-              encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) )
-          };
-        last CHECK if ( defined($check_mac)
+          eval { encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) ) };
+        last CHECK
+          if (
+               defined($check_mac)
             && length($check_mac)
             && equals( $check_mac, $mac ) # constant time comparison
-        );
+          );
         undef $key;
     }
 
