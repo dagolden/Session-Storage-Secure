@@ -4,7 +4,7 @@ use warnings;
 use Test::More 0.96;
 use Test::Deep qw/!blessed/;
 use Test::Tolerant;
-use MIME::Base64 qw/encode_base64url/;
+use MIME::Base64 qw/encode_base64url decode_base64url/;
 
 use Session::Storage::Secure;
 
@@ -14,6 +14,16 @@ my $data = {
 };
 
 my $secret = "serenade viscount secretary frail";
+
+my $custom_enc = sub {
+    return "~" . reverse encode_base64url( $_[0] );
+};
+
+my $custom_dec = sub {
+    my $string = shift;
+    substr( $string, 0, 1, '' );
+    return decode_base64url( scalar reverse $string );
+};
 
 sub _gen_store {
     my ($config) = @_;
@@ -219,8 +229,9 @@ subtest "custom separator" => sub {
 subtest "custom transfer encoding" => sub {
     my $store = _gen_store(
         {
-            transport_encoder => sub { return $_[0] },
-            transport_decoder => sub { return "" },   # intentionally broken
+            transport_encoder => $custom_enc,
+            transport_decoder => sub { return "" }, # intentionally broken
+            separator         => ':',
         }
     );
 
@@ -231,27 +242,13 @@ subtest "custom transfer encoding" => sub {
 
     $store = _gen_store(
         {
-            transport_encoder => sub { return $_[0] },
-            transport_decoder => sub { return $_[0] },
+            transport_encoder => $custom_enc,
+            transport_decoder => $custom_dec,
+            separator         => ':',
         }
     );
 
     $decoded = eval { $store->decode($encoded) };
-    is( $@, '', "no error decoding custom codec" );
-    cmp_deeply( $decoded, $data, "custom codec works" );
-};
-
-subtest "custom transfer encoding with separator" => sub {
-    my $store = _gen_store(
-        {
-            transport_encoder => sub { return "~" . $_[0] },
-            transport_decoder => sub { substr( $_[0], 0, 1, '' ); return $_[0] },
-            separator => ':',
-        }
-    );
-
-    my $encoded = $store->encode($data);
-    my $decoded = eval { $store->decode($encoded) };
     is( $@, '', "no error decoding custom codec" );
     cmp_deeply( $decoded, $data, "custom codec works" );
 };
