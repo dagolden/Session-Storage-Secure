@@ -207,5 +207,54 @@ subtest "empty encoded" => sub {
     is( $decoded, undef, "empty string decodes to undef" );
 };
 
+subtest "custom separator" => sub {
+    my $store = _gen_store( { separator => ":", } );
+
+    my $encoded = $store->encode($data);
+    my $decoded = eval { $store->decode($encoded) };
+    is( $@, '', "no error decoding custom separator" );
+    cmp_deeply( $decoded, $data, "custom separator works" );
+};
+
+subtest "custom transfer encoding" => sub {
+    my $store = _gen_store(
+        {
+            transport_encoder => sub { return $_[0] },
+            transport_decoder => sub { return "" },   # intentionally broken
+        }
+    );
+
+    my $encoded = $store->encode($data);
+
+    my $decoded = eval { $store->decode($encoded) };
+    is( $decoded, undef, "non-symmtric custom codec throws error" );
+
+    $store = _gen_store(
+        {
+            transport_encoder => sub { return $_[0] },
+            transport_decoder => sub { return $_[0] },
+        }
+    );
+
+    $decoded = eval { $store->decode($encoded) };
+    is( $@, '', "no error decoding custom codec" );
+    cmp_deeply( $decoded, $data, "custom codec works" );
+};
+
+subtest "custom transfer encoding with separator" => sub {
+    my $store = _gen_store(
+        {
+            transport_encoder => sub { return "~" . $_[0] },
+            transport_decoder => sub { substr( $_[0], 0, 1, '' ); return $_[0] },
+            separator => ':',
+        }
+    );
+
+    my $encoded = $store->encode($data);
+    my $decoded = eval { $store->decode($encoded) };
+    is( $@, '', "no error decoding custom codec" );
+    cmp_deeply( $decoded, $data, "custom codec works" );
+};
+
 done_testing;
 # COPYRIGHT

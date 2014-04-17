@@ -12,7 +12,7 @@ use Crypt::Rijndael         ();
 use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
-use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
+use MIME::Base64 3.12 ();
 use Sereal::Encoder ();
 use Sereal::Decoder ();
 use String::Compare::ConstantTime qw/equals/;
@@ -64,6 +64,47 @@ has default_duration => (
     is        => 'ro',
     isa       => Int,
     predicate => 1,
+);
+
+=attr transport_encoder
+
+A code reference to convert binary data elements (the encrypted data and the
+MAC) into a transport-safe form.  Defaults to
+L<MIME::Base64::encode_base64url|MIME::Base64>.  The output must not include
+the C<separator> attribute used to delimit fields.
+
+=cut
+
+has transport_encoder => (
+    is      => 'ro',
+    isa     => CodeRef,
+    default => sub { \&MIME::Base64::encode_base64url },
+);
+
+=attr transport_decoder
+
+A code reference to extract binary data (the encrypted data and the
+MAC) from a transport-safe form.  It must be the complement to C<encode>.
+Defaults to L<MIME::Base64::decode_base64url|MIME::Base64>.
+
+=cut
+
+has transport_decoder => (
+    is      => 'ro',
+    isa     => CodeRef,
+    default => sub { \&MIME::Base64::decode_base64url },
+);
+
+=attr separator
+
+A character used to separate fields.  It defaults to C<~>.
+
+=cut
+
+has separator => (
+    is      => 'ro',
+    isa     => Str,
+    default => '~',
 );
 
 has _encoder => (
@@ -124,7 +165,7 @@ If no C<$expires> is given, then if the C<default_duration> attribute is set, it
 will be used to calculate an expiration time.
 
 The method returns a string that securely encodes the session data.  All binary
-components are base64 encoded.
+components are protected via the L</transport_encoder> attribute.
 
 An exception is thrown on any errors.
 
@@ -133,6 +174,7 @@ An exception is thrown on any errors.
 sub encode {
     my ( $self, $data, $expires ) = @_;
     $data = {} unless defined $data;
+    my $sep = $self->separator;
 
     # If expiration is set, we want to check it and possibly clear data;
     # if not set, we might add an expiration based on default_duration
@@ -150,12 +192,12 @@ sub encode {
     my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
     my ( $ciphertext, $mac );
     eval {
-        $ciphertext = encode_base64url( $cbc->encrypt( $self->_freeze($data) ) );
-        $mac = encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) );
+        $ciphertext = $self->transport_encoder->( $cbc->encrypt( $self->_freeze($data) ) );
+        $mac = $self->transport_encoder->( hmac_sha256( "$expires$sep$ciphertext", $key ) );
     };
     croak "Encoding error: $@" if $@;
 
-    return join( "~", $salt, $expires, $ciphertext, $mac );
+    return join( $sep, $salt, $expires, $ciphertext, $mac );
 }
 
 =method decode
@@ -176,7 +218,8 @@ sub decode {
     return unless length $string;
 
     # Having a string implies at least salt; expires is optional; rest required
-    my ( $salt, $expires, $ciphertext, $mac ) = split qr/~/, $string;
+    my $sep = $self->separator;
+    my ( $salt, $expires, $ciphertext, $mac ) = split qr/\Q$sep\E/, $string;
     return unless defined($ciphertext) && length($ciphertext);
     return unless defined($mac)        && length($mac);
 
@@ -185,8 +228,9 @@ sub decode {
     my $key;
     CHECK: foreach my $secret (@secrets) {
         $key = hmac_sha256( $salt, $secret );
-        my $check_mac =
-          eval { encode_base64url( hmac_sha256( "$expires~$ciphertext", $key ) ) };
+        my $check_mac = eval {
+            $self->transport_encoder->( hmac_sha256( "$expires$sep$ciphertext", $key ) );
+        };
         last CHECK
           if (
                defined($check_mac)
@@ -205,7 +249,9 @@ sub decode {
     # Decrypt and deserialize the data
     my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
     my $data;
-    eval { $self->_thaw( $cbc->decrypt( decode_base64url($ciphertext) ), $data ) };
+    eval {
+        $self->_thaw( $cbc->decrypt( $self->transport_decoder->($ciphertext) ), $data );
+    };
     croak "Decoding error: $@" if $@;
 
     return $data;
