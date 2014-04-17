@@ -2,6 +2,8 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+0.009     2014-04-17 17:15:25-04:00 America/New_York
+
     [FIXED]
 
     - Fixed bug that would cause custom encoding tests to fail
