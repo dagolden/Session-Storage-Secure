@@ -117,8 +117,9 @@ sub _build__encoder {
     my ($self) = @_;
     return Sereal::Encoder->new(
         {
-            snappy         => 1,
-            croak_on_bless => 1,
+            snappy            => 1,
+            no_bless_objects  => 1,
+            stringify_unknown => 1,
         }
     );
 }
@@ -154,9 +155,11 @@ sub _build__rng {
 
   my $string = $store->encode( $data, $expires );
 
-The C<$data> argument should be a reference to a data structure.  It must not
-contain objects. If it is undefined, an empty hash reference will be encoded
-instead.
+The C<$data> argument should be a reference to a data structure.  If it
+contain objects, only the internal data structure will be encoded. If
+it is undefined, an empty hash reference will be encoded instead. If
+it contains unknown/unsupported data structures, they will be stringified
+and encoded as they are.
 
 The optional C<$expires> argument should be the session expiration time
 expressed as epoch seconds.  If the C<$expires> time is in the past, the
@@ -365,10 +368,10 @@ by splitting the value across multiple cookies.
 
 =head2 Objects not stored
 
-Session data may not include objects.  Sereal is configured to die if objects
-are encountered because object serialization/deserialiation can have
-undesirable side effects.  Applications should take steps to deflate/inflate
-objects before storing them in session data.
+Session data may not include objects. Sereal is configured to turn objects
+into unblessed data structures because object serialization/deserialiation
+can have undesirable side effects. Applications should take steps to
+deflate/inflate objects before storing them in session data.
 
 =head1 SECURITY
 
