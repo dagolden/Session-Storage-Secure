@@ -90,6 +90,16 @@ subtest "no data" => sub {
     cmp_deeply( $decoded, {}, "undefined data treated as empty hashref" );
 };
 
+subtest "blessed data" => sub {
+    my $store = _gen_store;
+    my $data = bless { 2 => 4 };
+
+    my $encoded = $store->encode( { foo => $data } );
+    my $decoded = $store->decode($encoded);
+
+    cmp_deeply( $decoded, { foo => { 2 => 4 } }, "blessed data treated as unblessed" );
+};
+
 subtest "future expiration" => sub {
     my $store   = _gen_store;
     my $expires = time + 3600;

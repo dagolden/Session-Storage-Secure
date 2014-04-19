@@ -2,6 +2,17 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+    [ADDED]
+
+    - Added support for encoding objects as their internal
+      representation (i.e. the unblessed data structure)
+      instead of throwing an exception (garu)
+
+    - Added support for encoding data structures that are
+      unknown/unsupported by Sereal as their stringification,
+      instead of throwing an exception (garu)
+
+
 0.009     2014-04-17 17:15:25-04:00 America/New_York
 
     [FIXED]
