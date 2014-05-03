@@ -43,6 +43,28 @@ sub _replace {
     return join "~", @parts;
 }
 
+subtest "blessed objects" => sub {
+
+    package MyMock;
+        sub new { bless { somekey => 'someval' }, shift }
+    package main;
+
+    my $data = {
+        foo  => 0,
+        mock => MyMock->new,
+    };
+
+    my $store = _gen_store(
+        {
+            allow_blessed => 1,
+        }
+    );
+
+    my $encoded = $store->encode($data);
+    my $decoded = $store->decode($encoded);
+    cmp_deeply( $decoded, $data, "routrip with object" );
+};
+
 subtest "defaults" => sub {
     my $store = _gen_store;
 
