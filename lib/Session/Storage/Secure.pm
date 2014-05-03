@@ -107,6 +107,18 @@ has separator => (
     default => '~',
 );
 
+=attr allow_blessed
+
+Whether to allow storage of objects or not. Defaults to C<0> (don't allow).
+
+=cut
+
+has allow_blessed => (
+    is      => 'ro',
+    isa     => Bool,
+    default => 0,
+);
+
 has _encoder => (
     is      => 'lazy',
     isa     => InstanceOf ['Sereal::Encoder'],
@@ -118,7 +130,7 @@ sub _build__encoder {
     return Sereal::Encoder->new(
         {
             snappy         => 1,
-            croak_on_bless => 1,
+            croak_on_bless => !$self->allow_blessed,
         }
     );
 }
@@ -133,7 +145,7 @@ sub _build__decoder {
     my ($self) = @_;
     return Sereal::Decoder->new(
         {
-            refuse_objects => 1,
+            refuse_objects => !$self->allow_blessed,
             validate_utf8  => 1,
         }
     );
@@ -363,12 +375,15 @@ However, nothing prevents the encoded output from exceeding 4k.  Applications
 must check for this condition and handle it appropriately with an error or
 by splitting the value across multiple cookies.
 
-=head2 Objects not stored
+=head2 Objects not stored (unless explicitly asked)
 
 Session data may not include objects.  Sereal is configured to die if objects
 are encountered because object serialization/deserialiation can have
-undesirable side effects.  Applications should take steps to deflate/inflate
-objects before storing them in session data.
+undesirable side effects (e.g. executing code).  Applications should take steps
+to deflate/inflate objects before storing them in session data.
+
+If, however, you are confident about the data you are storing, you can pass
+a true value to the C<allow_blessed> property of the constructor.
 
 =head1 SECURITY
 
