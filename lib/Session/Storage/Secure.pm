@@ -39,23 +39,11 @@ has secret_key => (
     required => 1,
 );
 
-=attr old_secrets
-
-An optional array reference of strings containing old secret keys no longer
-used for encryption but still supported for decrypting session data.
-
-=cut
-
-has old_secrets => (
-    is  => 'ro',
-    isa => ArrayRef [Str],
-);
-
 =attr default_duration
 
 Number of seconds for which the session may be considered valid.  If an
 expiration is not provided to C<encode>, this is used instead to expire the
-session after a period of time.  It is unset by default, meaning that sessions
+session after a period of time.  It is unset by default, meaning that session
 expiration is not capped.
 
 =cut
@@ -66,33 +54,16 @@ has default_duration => (
     predicate => 1,
 );
 
-=attr transport_encoder
+=attr old_secrets
 
-A code reference to convert binary data elements (the encrypted data and the
-MAC) into a transport-safe form.  Defaults to
-L<MIME::Base64::encode_base64url|MIME::Base64>.  The output must not include
-the C<separator> attribute used to delimit fields.
+An optional array reference of strings containing old secret keys no longer
+used for encryption but still supported for decrypting session data.
 
 =cut
 
-has transport_encoder => (
-    is      => 'ro',
-    isa     => CodeRef,
-    default => sub { \&MIME::Base64::encode_base64url },
-);
-
-=attr transport_decoder
-
-A code reference to extract binary data (the encrypted data and the
-MAC) from a transport-safe form.  It must be the complement to C<encode>.
-Defaults to L<MIME::Base64::decode_base64url|MIME::Base64>.
-
-=cut
-
-has transport_decoder => (
-    is      => 'ro',
-    isa     => CodeRef,
-    default => sub { \&MIME::Base64::decode_base64url },
+has old_secrets => (
+    is  => 'ro',
+    isa => ArrayRef [Str],
 );
 
 =attr separator
@@ -131,6 +102,35 @@ has sereal_decoder_options => (
     is      => 'ro',
     isa     => HashRef,
     default => sub { { refuse_objects => 1, validate_utf8 => 1 } },
+);
+
+=attr transport_encoder
+
+A code reference to convert binary data elements (the encrypted data and the
+MAC) into a transport-safe form.  Defaults to
+L<MIME::Base64::encode_base64url|MIME::Base64>.  The output must not include
+the C<separator> attribute used to delimit fields.
+
+=cut
+
+has transport_encoder => (
+    is      => 'ro',
+    isa     => CodeRef,
+    default => sub { \&MIME::Base64::encode_base64url },
+);
+
+=attr transport_decoder
+
+A code reference to extract binary data (the encrypted data and the
+MAC) from a transport-safe form.  It must be the complement to C<encode>.
+Defaults to L<MIME::Base64::decode_base64url|MIME::Base64>.
+
+=cut
+
+has transport_decoder => (
+    is      => 'ro',
+    isa     => CodeRef,
+    default => sub { \&MIME::Base64::decode_base64url },
 );
 
 has _encoder => (
@@ -323,16 +323,16 @@ may happen prior to the application server), we omit C<ssl-key>.  This
 weakens protection against replay attacks if an attacker can break
 the SSL session key and intercept messages.
 
-Using C<user> and C<expiration> to generate the encryption and MAC keys
-was a method proposed to ensure unique keys to defeat volume attacks
-against the secret key.  Rather than rely on those for uniqueness, which
-also reveals user name and prohibits anonymous sessions, we replace
-C<user> with a cryptographically-strong random salt value.
+Using C<user> and C<expiration> to generate the encryption and MAC keys was a
+method proposed to ensure unique keys to defeat volume attacks against the
+secret key.  Rather than rely on those for uniqueness (with the unfortunate
+side effect of revealing user names and prohibiting anonymous sessions), we
+replace C<user> with a cryptographically-strong random salt value.
 
-The original proposal also calculates a MAC based on unencrypted
-data.  We instead calculate the MAC based on the encrypted data.  This
-avoids the extra step of decrypting invalid messages.  Because the
-salt is already encoded into the key, we omit it from the MAC input.
+The original proposal also calculates a MAC based on unencrypted data.  We
+instead calculate the MAC based on the encrypted data.  This avoids an extra
+step decrypting invalid messages.  Because the salt is already encoded into the
+key, we omit it from the MAC input.
 
 Therefore, the session storage protocol used by this module is as follows:
 
@@ -351,7 +351,7 @@ L<Crypt::URandom>.
 
 The HMAC algorithm is C<hmac_sha256> from L<Digest::SHA>.  Encryption
 is done by L<Crypt::CBC> using L<Crypt::Rijndael> (AES).  The ciphertext and
-MAC's in the cookie are Base64 encoded by L<MIME::Base64>.
+MAC's in the cookie are Base64 encoded by L<MIME::Base64> by default.
 
 During session retrieval, if the MAC does not authenticate or if the expiration
 is set and in the past, the session will be discarded.
