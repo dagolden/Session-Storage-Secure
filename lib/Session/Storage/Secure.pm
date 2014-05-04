@@ -107,6 +107,32 @@ has separator => (
     default => '~',
 );
 
+=attr sereal_encoder_options
+
+A hash reference with constructor arguments for L<Sereal::Encoder>. Defaults
+to C<< { snappy => 1, croak_on_bless => 1 } >>.
+
+=cut
+
+has sereal_encoder_options => (
+    is      => 'ro',
+    isa     => HashRef,
+    default => sub { { snappy => 1, croak_on_bless => 1 } },
+);
+
+=attr sereal_decoder_options
+
+A hash reference with constructor arguments for L<Sereal::Decoder>. Defaults
+to C<< { refuse_objects => 1, validate_utf8  => 1 } >>.
+
+=cut
+
+has sereal_decoder_options => (
+    is      => 'ro',
+    isa     => HashRef,
+    default => sub { { refuse_objects => 1, validate_utf8 => 1 } },
+);
+
 has _encoder => (
     is      => 'lazy',
     isa     => InstanceOf ['Sereal::Encoder'],
@@ -115,12 +141,7 @@ has _encoder => (
 
 sub _build__encoder {
     my ($self) = @_;
-    return Sereal::Encoder->new(
-        {
-            snappy         => 1,
-            croak_on_bless => 1,
-        }
-    );
+    return Sereal::Encoder->new( $self->sereal_encoder_options );
 }
 
 has _decoder => (
@@ -131,12 +152,7 @@ has _decoder => (
 
 sub _build__decoder {
     my ($self) = @_;
-    return Sereal::Decoder->new(
-        {
-            refuse_objects => 1,
-            validate_utf8  => 1,
-        }
-    );
+    return Sereal::Decoder->new( $self->sereal_decoder_options );
 }
 
 has _rng => (
@@ -154,9 +170,10 @@ sub _build__rng {
 
   my $string = $store->encode( $data, $expires );
 
-The C<$data> argument should be a reference to a data structure.  It must not
-contain objects. If it is undefined, an empty hash reference will be encoded
-instead.
+The C<$data> argument should be a reference to a data structure.  By default,
+it must not contain objects.  (See L</Objects not stored by default> for
+rationale and alternatives.) If it is undefined, an empty hash reference will
+be encoded instead.
 
 The optional C<$expires> argument should be the session expiration time
 expressed as epoch seconds.  If the C<$expires> time is in the past, the
@@ -363,12 +380,18 @@ However, nothing prevents the encoded output from exceeding 4k.  Applications
 must check for this condition and handle it appropriately with an error or
 by splitting the value across multiple cookies.
 
-=head2 Objects not stored
+=head2 Objects not stored by default
 
-Session data may not include objects.  Sereal is configured to die if objects
-are encountered because object serialization/deserialiation can have
-undesirable side effects.  Applications should take steps to deflate/inflate
-objects before storing them in session data.
+The default Sereal options do not allow storing objects because object
+deserialization can have undesirable side effects, including potentially fatal
+errors if a class is not available at deserialization time or if internal class
+structures changed from when the session data was serialized to when it was
+deserialized.  Applications should take steps to deflate/inflate objects before
+storing them in session data.
+
+Alternatively, applications can change L</sereal_encoder_options> and
+L</sereal_decoder_options> to allow object serialization or other object
+transformations and accept the risks of doing so.
 
 =head1 SECURITY
 

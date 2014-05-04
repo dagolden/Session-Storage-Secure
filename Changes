@@ -2,6 +2,13 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+    [ADDED]
+
+    - Added support for customizing options to Sereal encoder and decoder,
+      i.e. to allow object serialization for those willing to accept the
+      risks of doing so.  (Thanks to Breno de Oliveira for inspiration to
+      do this.)
+
 0.009     2014-04-17 17:15:25-04:00 America/New_York
 
     [FIXED]
