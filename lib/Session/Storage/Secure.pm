@@ -207,7 +207,7 @@ sub encode {
     my $salt = $self->_irand;
     my $key = hmac_sha256( $salt, $self->secret_key );
 
-    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
+    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael', -pbkdf => 'opensslv1', -nodeprecate => 1 );
     my ( $ciphertext, $mac );
     eval {
         $ciphertext = $self->transport_encoder->( $cbc->encrypt( $self->_freeze($data) ) );
