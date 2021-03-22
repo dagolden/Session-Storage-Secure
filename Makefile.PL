@@ -17,7 +17,7 @@ my %WriteMakefileArgs = (
   "NAME" => "Session::Storage::Secure",
   "PREREQ_PM" => {
     "Carp" => 0,
-    "Crypt::CBC" => 0,
+    "Crypt::CBC" => "2.33",
     "Crypt::Rijndael" => 0,
     "Crypt::URandom" => 0,
     "Digest::SHA" => 0,
@@ -49,7 +49,7 @@ my %WriteMakefileArgs = (
 
 my %FallbackPrereqs = (
   "Carp" => 0,
-  "Crypt::CBC" => 0,
+  "Crypt::CBC" => "2.33",
   "Crypt::Rijndael" => 0,
   "Crypt::URandom" => 0,
   "Digest::SHA" => 0,

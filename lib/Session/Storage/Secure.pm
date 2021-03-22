@@ -7,9 +7,9 @@ package Session::Storage::Secure;
 
 our $VERSION = '0.012';
 
-use Carp                    (qw/croak/);
-use Crypt::CBC              ();
-use Crypt::Rijndael         ();
+use Carp (qw/croak/);
+use Crypt::CBC 2.33 ();
+use Crypt::Rijndael ();
 use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
@@ -134,6 +134,20 @@ has transport_decoder => (
     default => sub { \&MIME::Base64::decode_base64url },
 );
 
+=attr protocol_version
+
+An integer representing the protocol used by C<Session::Storage::Secure>.
+Protocol 1 was the initial version, which used a now-deprecated mode of
+L<Crypt::CBC>.  Protocol 2 is the current default.
+
+=cut
+
+has protocol_version => (
+    is      => 'ro',
+    isa     => Num,
+    default => 2,
+);
+
 has _encoder => (
     is      => 'lazy',
     isa     => InstanceOf ['Sereal::Encoder'],
@@ -165,6 +179,42 @@ has _rng => (
 sub _build__rng {
     my ($self) = @_;
     return Math::Random::ISAAC::XS->new( map { unpack( "N", urandom(4) ) } 1 .. 256 );
+}
+
+sub BUILD {
+    my ($self) = @_;
+    $self->_check_version_for( encoding => $self->protocol_version );
+}
+
+sub _check_version_for {
+    my ( $self, $action, $pv ) = @_;
+    if ( $pv < 1 || $pv > 2 ) {
+        croak "Invalid protocol version for $action: $pv";
+    }
+}
+
+sub _get_cbc {
+    my ( $self, $pv, $key, $salt ) = @_;
+
+    my $cbc_opts = {
+        -key    => $key,
+        -cipher => 'Rijndael',
+    };
+
+    if ( $pv == 1 ) {
+        $cbc_opts->{-pbkdf}       = 'opensslv1';
+        $cbc_opts->{-nodeprecate} = 1;
+    }
+    else {
+        $cbc_opts->{-pbkdf}       = 'none';
+        $cbc_opts->{-keysize}     = 32;
+        $cbc_opts->{-literal_key} = 1;
+        $cbc_opts->{-header}      = 'none';
+        my $cipher = Crypt::Rijndael->new($key);
+        $cbc_opts->{-iv} = substr( $cipher->encrypt($salt), 0, 16 );
+    }
+
+    return Crypt::CBC->new(%$cbc_opts);
 }
 
 =method encode
@@ -204,10 +254,20 @@ sub encode {
     }
 
     # Random salt used to derive unique encryption/MAC key for each cookie
-    my $salt = $self->_irand;
+    my $salt;
+    if ( $self->protocol_version == 1 ) {
+        # numeric salt
+        $salt = $self->_irand;
+    }
+    else {
+        # binary salt
+        $salt = pack( "N*", map { $self->_irand } 1 .. 8 );
+    }
+
     my $key = hmac_sha256( $salt, $self->secret_key );
 
-    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael', -pbkdf => 'opensslv1', -nodeprecate => 1 );
+    my $cbc = $self->_get_cbc( $self->protocol_version, $key, $salt );
+
     my ( $ciphertext, $mac );
     eval {
         $ciphertext = $self->transport_encoder->( $cbc->encrypt( $self->_freeze($data) ) );
@@ -215,7 +275,15 @@ sub encode {
     };
     croak "Encoding error: $@" if $@;
 
-    return join( $sep, $salt, $expires, $ciphertext, $mac );
+    my $output;
+    if ( $self->protocol_version == 1 ) {
+        $output = join( $sep, $salt, $expires, $ciphertext, $mac );
+    }
+    else {
+        $salt   = $self->transport_encoder->($salt);
+        $output = join( $sep, $salt, $expires, $ciphertext, $mac, $self->protocol_version );
+    }
+    return $output;
 }
 
 =method decode
@@ -237,9 +305,19 @@ sub decode {
 
     # Having a string implies at least salt; expires is optional; rest required
     my $sep = $self->separator;
-    my ( $salt, $expires, $ciphertext, $mac ) = split qr/\Q$sep\E/, $string;
+    my ( $salt, $expires, $ciphertext, $mac, $version ) = split qr/\Q$sep\E/, $string;
     return unless defined($ciphertext) && length($ciphertext);
     return unless defined($mac)        && length($mac);
+    $version = 1 unless defined $version;
+    $self->_check_version_for( decoding => $version );
+
+    if ( $version == 1 ) {
+        # $salt is a decimal
+    }
+    else {
+        # Decode salt to binary
+        $salt = $self->transport_decoder->($salt);
+    }
 
     # Try to decode against all known secret keys
     my @secrets = ( $self->secret_key, @{ $self->old_secrets || [] } );
@@ -265,7 +343,8 @@ sub decode {
     return if length($expires) && $expires < time;
 
     # Decrypt and deserialize the data
-    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
+    my $cbc = $self->_get_cbc( $version, $key, $salt );
+
     my $data;
     eval {
         $self->_thaw( $cbc->decrypt( $self->transport_decoder->($ciphertext) ), $data );
@@ -277,7 +356,7 @@ sub decode {
 
 1;
 
-=for Pod::Coverage has_default_duration
+=for Pod::Coverage has_default_duration BUILD
 
 =head1 SYNOPSIS
 
