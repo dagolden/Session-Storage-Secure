@@ -5,7 +5,7 @@ use warnings;
 package Session::Storage::Secure;
 # ABSTRACT: Encrypted, expiring, compressed, serialized session data with integrity
 
-our $VERSION = '0.012';
+our $VERSION = '0.902';
 
 use Carp (qw/croak/);
 use Crypt::CBC 2.33 ();
