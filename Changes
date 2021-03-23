@@ -2,6 +2,10 @@ Revision history for Session-Storage-Secure
 
 {{$NEXT}}
 
+    [PREREQS]
+
+    - Requires Crypt::CBC 3.01
+
 0.901     2021-03-22 11:37:09-04:00 America/New_York (TRIAL RELEASE)
 
     [!!! Compatibility Notice !!!]
@@ -22,10 +26,6 @@ Revision history for Session-Storage-Secure
 
     - Protocol version 1 suppresses 'opensslv1' key-derivation function
       deprecation warnings from Crypt::CBC.
-
-    [PREREQS]
-
-    - Requires Crypt::CBC 3.01
 
 0.011     2018-04-22 22:12:40+02:00 Europe/Oslo
 
