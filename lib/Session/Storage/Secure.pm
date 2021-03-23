@@ -8,7 +8,7 @@ package Session::Storage::Secure;
 our $VERSION = '0.902';
 
 use Carp (qw/croak/);
-use Crypt::CBC 2.33 ();
+use Crypt::CBC 3.01 ();
 use Crypt::Rijndael ();
 use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
@@ -208,7 +208,6 @@ sub _get_cbc {
     else {
         $cbc_opts->{-pbkdf}       = 'none';
         $cbc_opts->{-keysize}     = 32;
-        $cbc_opts->{-literal_key} = 1;
         $cbc_opts->{-header}      = 'none';
         my $cipher = Crypt::Rijndael->new($key);
         $cbc_opts->{-iv} = substr( $cipher->encrypt($salt), 0, 16 );
